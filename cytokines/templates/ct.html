@@ -1,0 +1,23 @@
+<html>
+<head>
+<title>{{ name }}</title>
+</head>
+<body>
+<h1>{{ name }}</h1>
+{{contents[name]}}
+<h2>Cytokines Produced</h2>
+<ul>
+{% for n in lkout[name] %}
+    <li>{{ n }}</li>
+{% endfor %}
+</ul>
+<h2>Cytokines receptors Produced</h2>
+<ul>
+{% for n in lkin[name] %}
+    <li>{{ n }}</li>
+{% endfor %}
+</ul>
+</body>
+</html>
+
+
