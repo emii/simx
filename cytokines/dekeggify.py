@@ -8,7 +8,7 @@ db = 'path'
 org = 'hsa'
 item = '04060'
 formt = 'kgml' 
-
+write_ = True
 requrl = url+'/'+action+'/'+':'.join([db,org+item])+'/'+formt
 
 keggreq = requests.get(requrl)
@@ -20,24 +20,41 @@ for el in root.iterfind('entry'):
     if el.get('type')=='gene':
         nid = el.get('id')
         lo = el.find('graphics')
-        label = [x.strip() for x in el.find('graphics').get('name').split(',')][0]
+        labels = [x.strip() for x in el.find('graphics').get('name').split(',')]
+        label= labels[0]
+        altnames=lo.get('name')
         x,y,z = (lo.get('x'),lo.get('y'),0.0)
         size = 15
-        r,g,b = (255,51,51)
+        r,g,b = (147,161,161)
         color = {'r':r, 'g':g, 'b':b}
         position = {'x':x, 'y':y, 'z':y}
         viz = {'size':size, 'color':color, 'position':position}
-        G.add_node(nid,{'label':label, 'viz':viz})
+        G.add_node(nid,{'label':label, 'viz':viz, 'names':altnames, 'type':'single'})
+    elif el.get('type')=='group':
+        nid = el.get('id')
+        lo = el.find('graphics')
+        comps=el.findall('component')
+        ids= [co.get('id') for co in comps]
+        label = ''
+        x,y,z = (lo.get('x'),lo.get('y'),-1)
+        size = 10
+        r,g,b = (133,153,0)
+        color = {'r':r, 'g':g, 'b':b}
+        position = {'x':x, 'y':y, 'z':y}
+        viz = {'size':size, 'color':color, 'position':position}
+        G.add_node(nid,{'label':label, 'viz':viz,'type':'complex'})
+        for co in ids:
+            G.node[co]['viz']['color']=color
+    else:
+        continue
 for rl in root.iterfind('relation'):
     id1=rl.get('entry1')
     id2=rl.get('entry2')
+    G.node[id1]['viz']['color']={'r':42,'g':161,'b':152}
+    if G.node[id2]['type']=='single':
+        G.node[id2]['viz']['color']={'r':211, 'g':54, 'b':130}
+    else:
+        G.node[id2]['viz']['color']={'r':253, 'g':246, 'b':227}
     G.add_edge(id1,id2)
-if write_
-    nx.write_gexf(G,'kegg_pathway.gexf')
-
-
-
-
-
-
-    
+if write_:
+    nx.write_gexf(G,'../../sndbxbe/output/static/D3/test2.gexf')
