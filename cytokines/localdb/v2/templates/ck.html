@@ -1,0 +1,13 @@
+<html>
+<head>
+<title>{{ name }}</title>
+</head>
+<body>
+<h1>{{ name }}</h1>
+{% for n in cytokines[name] %}
+    <h2>{{ n }}</h2>
+    {{ contents[n] }}
+{% endfor %}
+</body>
+</html>
+

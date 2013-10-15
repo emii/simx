@@ -1,0 +1,24 @@
+<html>
+<head>
+<title>Cytokines and cell types</title>
+</head>
+<body>
+<h1>Cytokines</h1>
+<ul>
+{% for cytokine in names %}
+    <li>
+    <a href=ck/{{ cytokine }}.html>{{ cytokine }}</a>
+    </li>
+{% endfor %}
+</ul>
+
+<h1>Cell types</h1>
+<ul>
+{% for ct in types %}
+    <li>
+    <a href=ct/{{ ct }}.html>{{ ct }}</a>
+    </li>
+{% endfor %}
+</ul>
+</body>
+</html>

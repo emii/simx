@@ -11,10 +11,20 @@ formt = 'kgml'
 write_ = True
 requrl = url+'/'+action+'/'+':'.join([db,org+item])+'/'+formt
 
-keggreq = requests.get(requrl)
-
-root = etree.XML(keggreq.text)
+#keggreq = requests.get(requrl)
+#root = etree.XML(keggreq.text)
+root = etree.parse('hsa04060.xml')
 G=nx.DiGraph()
+
+ckdict={}
+cytokines=[]
+ck_names=[]
+with open('ck_names.dat','r') as ck_list:
+    for ckdefs in ck_list:  
+        cks=ckdefs.strip('\n').split(',')
+        ckdict[cks[0]] = [c.replace(' ','%20' ) for c in cks]
+        ck_names.append(cks[0])
+        cytokines+=[c.replace(' ','%20') for c in cks]
 
 for el in root.iterfind('entry'):
     if el.get('type')=='gene':
@@ -42,7 +52,7 @@ for el in root.iterfind('entry'):
         color = {'r':r, 'g':g, 'b':b}
         position = {'x':x, 'y':y, 'z':y}
         viz = {'size':size, 'color':color, 'position':position}
-        G.add_node(nid,{'label':label, 'viz':viz,'type':'complex'})
+        G.add_node(nid,{'label':label, 'viz':viz,'type':'receptor complex'})
         for co in ids:
             G.node[co]['viz']['color']=color
     else:
@@ -51,8 +61,10 @@ for rl in root.iterfind('relation'):
     id1=rl.get('entry1')
     id2=rl.get('entry2')
     G.node[id1]['viz']['color']={'r':42,'g':161,'b':152}
+    G.node[id1]['type']='cytokine'
     if G.node[id2]['type']=='single':
         G.node[id2]['viz']['color']={'r':211, 'g':54, 'b':130}
+        G.node[id2]['type']='receptor'
     else:
         G.node[id2]['viz']['color']={'r':253, 'g':246, 'b':227}
     G.add_edge(id1,id2)
