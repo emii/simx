@@ -3,25 +3,53 @@
 import sys
 import codecs
 import re
+import math
 import requests
+import networkx as nx
 from jinja2 import Environment, PackageLoader 
 from bs4 import BeautifulSoup
 
+G=nx.DiGraph()
+
 ckdict={}
-cytokines=[]
+#ck_labels=[]
 ck_names=[]
 with open('ck_names_cope.dat','r') as ck_list:
     for ckdefs in ck_list:  
         cks=ckdefs.strip('\n').split(',')
         ckdict[cks[0]] = [c.replace(' ','%20' ) for c in cks]
-        ck_names.append(cks[0])
-        #cytokines+=[c.replace(' ','%20') for c in cks]
+        ck_names.append(cks[-1])
+        #ck_names+=[c for c in cks]
 
 url = 'http://www.copewithcytokines.org/cope.cgi'
-celltypes=('hepatocytes',)#,'fibroblasts','T-cells','macrophages')
+celltypes=('hepatocytes','fibroblasts')#,'T-cells','macrophages')
 cells={}
+r=50
+L=len(ck_names)
+i=1
+for ck in ck_names:
+    x=math.cos(math.pi*i/L)*r 
+    y=math.sin(math.pi*i/L)*r
+    i+=1
+    # add a node for cytokine
+    size = 15
+    r,g,b = (133,153,0)
+    color = {'r':r, 'g':g, 'b':b}
+    position = {'x':x, 'y':y, 'z':0}
+    viz = {'size':size, 'color':color,'position':position}
+    G.add_node(ck,{'label':ck, 'viz':viz, 'type':'cytokine'})
 
 for cell in celltypes:
+    
+    # add a node for celltype
+    x,y,z = (1,1,0.0)
+    size = 15
+    r,g,b = (42,161,152)
+    color = {'r':r, 'g':g, 'b':b}
+    position = {'x':x, 'y':y, 'z':y}
+    viz = {'size':size, 'color':color}
+    G.add_node(cell,{'label':cell, 'viz':viz, 'type':'cell'})
+
     cells[cell]={}
     p=requests.get(url,params={'key':cell})
     if (p.status_code == requests.codes.ok):
@@ -55,64 +83,48 @@ for cell in celltypes:
             content.append(cnt)
     cells[cell]['contents'] = content
     
-    #search expressed cytokines
-    first=title.find_next_siblings('b', text=u'\u00A5')
-    expressed = []
-
-    for el in first:
-        ck = soup.new_tag('entry')
-        while el.name != 'br':
-            ck.contents.append(el)
-            el=el.next_sibling
-        expressed.append(ck)
-    
-    cytokines=[]
-    for ck in expressed:
-        try:
-            cytokines.append(ck.find('a').get_text())
-        except:
-            continue
-    
-    #search expressed cytokine receptors
+    #search expressed cytokines and receptors
     el=soup.find(text=u'\xa5\xa5')
-    recepted = []
+    indexed = []
     ck=soup.new_tag('entry')
 
     while el.name != 'center':
         if el.name == 'br':
-            recepted.append(ck)
+            indexed.append(ck)
             ck=soup.new_tag('entry')
             el=el.next_element
             continue
         ck.contents.append(el)
         el=el.next_element
-
-#    for el in first:
-#        ck = soup.new_tag('entry')
-#        while el.name != 'br':
-#        #    if c < 1000:
-#         #       print el
-#          #  c+=1
-#            ck.contents.append(el)
-#            el=el.next_element
-#        recepted.append(ck)
-    
+ 
     receptors=[]
     cytokines=[]
-    for ck in recepted:
+    
+    for ck in indexed:
         if re.search(ur'\xa5\xa5',ck.get_text()):
 
+            try:
+                rc_name = ck.find('a').get_text()
+                if rc_name in ck_names:
+                    G.add_edge(rc_name,cell)
+                    receptors.append(rc_name)
+            except:
+                #print ck
+                continue
+        elif re.search(ur'\xa5',ck.get_text()):
             try:   
-                receptors.append(ck.find('a').get_text())
+                ck_name = ck.find('a').get_text()
+                if ck_name in ck_names:
+                    G.add_edge(cell,ck_name)
+                    cytokines.append(ck_name)
             except:
                 #print ck
                 continue
         else:
-            try:   
-                cytokines.append(ck.find('a').get_text())
-            except:
-                #print ck
-                continue
+            continue
+    cells[cell]['cytokines'] = cytokines
+    cells[cell]['receptors'] = receptors
 
-    with open('test_unwrap3.html','w') as f:
-        f.write(str(soup))
+
+nx.write_gexf(G,'../../sndbxbe/output/static/D3/nt.gexf')
+
